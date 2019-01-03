@@ -1,0 +1,25 @@
+{
+  "manifest_version": 2,
+  "name": "CiteNetCheck",
+  "author": "Max Ohn",
+  "version": "1.0.0",
+  "description": "Analyze the local citation network of a published paper.",
+  "background": {
+    "scripts": [ "background.js" ],
+    "persistence": false
+  },
+  "page_action": {
+    "default_title": "Analyze citation network",
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "declarativeContent",
+    "tabs"
+  ],
+
+  // Icons made by Smashicons from https://www.flaticon.com, licensed as Creative Commons BY 3.0 (http://creativecommons.org/licenses/by/3.0/)
+  "icons": {
+    "16": "images/network_16.png",
+    "128": "images/network_128.png"
+  }
+}
