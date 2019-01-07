@@ -4,8 +4,8 @@
  */
 $(document).ready(() => {
 
-    // Prepares the visual window + loading screen
-    prepareSVG();
+    // Prepares loading screen
+    loadingScreen();
 
     // Retrieve original paper ID from current webpage's url
     getCurrentPaperID(id => {
@@ -17,7 +17,7 @@ $(document).ready(() => {
             const waitPerIteration = 750;
 
             // How many grades distant neighbors should be retrieved
-            // depth = 1 means only direct neighbors of the original paper
+            // depth = 1 means all neighbors of 2nd degree of the initial paper ID
             let depth = 1;
 
             // Dictionary containing all links
@@ -69,28 +69,10 @@ $(document).ready(() => {
 });
 
 /*
- *  Add the HTML element containing everything, preset its size, orientation, and border
+ *  Draw loading animation and keep updating loading text
  */
-function prepareSVG() {
-
-    // First add the containing div, then save the included SVG canvas as a variable
-    let svg = d3.select("body")
-        .append("div")
-        .attr("id", "container")
-        .styles({
-            width: "100%",
-            height: "100%"
-        })
-        .append("svg")
-        .attrs({
-            id: "networkCanvas",
-            width: "100%",
-            height: "100%"
-        })
-        .styles({
-            border: "3px solid black",
-            margin: "auto"
-        });
+function loadingScreen() {
+    let svg = d3.select("#networkCanvas");
 
     // Loading animation
     svg.append("image")
@@ -496,7 +478,7 @@ function drawLegend(network) {
     const networkInfo = calculateNetworkInfo(network);
 
     d3.select("#networkCanvas")
-        .selectAll(".infoDispplay")
+        .selectAll(".infoDisplay")
         .data([
             { t: "Min Degree", num: networkInfo.minDeg },
             { t: "Max Degree", num: networkInfo.maxDeg },
