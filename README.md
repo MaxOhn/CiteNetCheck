@@ -30,9 +30,8 @@ Once the icon is clicked, a small window will open, first retrieving data about 
 
 
 
-- As of now, all data is requested from [NCBI's E-Utilities API](https://www.ncbi.nlm.nih.gov/books/NBK25497/). Unfortunately, the APIs interface requires a new request for each papers citations so if a paper was cited many times, the extension will have to request many times.
-The current workaround is to throttle down to 1 request per second for up to 10-50 papers that cite the original paper and work with the resulting sub-network.
-- For now, the extension was tested solely on Google Chrome Windows 10.
+- Rewriting requests from [NCBI's E-Utilities API](https://www.ncbi.nlm.nih.gov/books/NBK25497/) for optimized data retrieval.
+- Functionality for all browsers (currently only Google Chrome)
 
 
 # Dependencies / Credits
@@ -41,4 +40,5 @@ The current workaround is to throttle down to 1 request per second for up to 10-
 
 - [d3](https://d3js.org/)
 - [jQuery](https://jquery.com/)
+- [NCBI's E-Utilities API](https://www.ncbi.nlm.nih.gov/books/NBK25497/) ([Disclaimer and Copyright notice](https://www.ncbi.nlm.nih.gov/home/about/policies/))
 - Extension icons are made by [Smashicons](https://www.flaticon.com/authors/smashicons), licensed as [Creative Commons BY 3.0](http://creativecommons.org/licenses/by/3.0/)
