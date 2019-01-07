@@ -16,11 +16,11 @@ $(document).ready(() => {
             // 3 requests per second are allowed, let's not overdo it
             const waitPerIteration = 750;
 
-            // How many grades distant neighbors should be retrieved
+            // How many degrees of distant neighbors should be retrieved (+ 1)
             // depth = 1 means all neighbors of 2nd degree of the initial paper ID
             let depth = 1;
 
-            // Dictionary containing all links
+            // Dictionary containing all links, i.e. all the info for the drawing part
             let citedinDict = initialLinks;
 
             // Recursive function called once for every iteration of depth
@@ -30,7 +30,7 @@ $(document).ready(() => {
                 setTimeout(() => {
 
                     // Check which id's neighbors need to be retrieved next
-                    // Includes ids introduced in the last iteration minus the ones already considered
+                    // Includes IDs introduced in the last iteration minus the ones already considered
                     let nextOrigins = Object.values(lastLinks)
                         .reduce((concatenation, curr) => concatenation.concat(curr), [])
                         .filter(id => !Object.keys(citedinDict).includes(id));
@@ -43,13 +43,13 @@ $(document).ready(() => {
                             citedinDict[key] = nextCitedinDict[key];
                         }
 
-                        // Desired depth not yet reached
+                        // Desired depth not yet reached, stay in recursion
                         if (--i) getCitedinForNextPapers(i, nextCitedinDict);
 
                         // Depth reached, finish recursion
                         else {
 
-                            // Extend dictionary by indicating no entry = no links
+                            // Extend dictionary by indicating "no entry = no links"
                             for (let valueArray of Object.values(citedinDict)) {
                                 for (let value of valueArray) {
                                     if (!citedinDict.hasOwnProperty(value)) {

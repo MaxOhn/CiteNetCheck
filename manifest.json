@@ -16,8 +16,6 @@
     "declarativeContent",
     "tabs"
   ],
-
-  // Icons made by Smashicons from https://www.flaticon.com, licensed as Creative Commons BY 3.0 (http://creativecommons.org/licenses/by/3.0/)
   "icons": {
     "16": "images/network_16.png",
     "128": "images/network_128.png"
