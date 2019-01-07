@@ -4,58 +4,66 @@
  */
 $(document).ready(() => {
 
-    // Prepares the visual window
+    // Prepares the visual window + loading screen
     prepareSVG();
 
+    // Retrieve original paper ID from current webpage's url
     getCurrentPaperID(id => {
-        getCitedinIDs(id, citedinArray => {
 
-            // Contains promise object for each asynchronous request
-            let operations = [];
+        // Retrieve all paper IDs citing the original paper
+        getCitedinIDs([id], initialLinks => {
 
-            // Pick at most 10 cited-in papers
-            const iterations = Math.min(citedinArray.length, 10);
+            // 3 requests per second are allowed, let's not overdo it
+            const waitPerIteration = 750;
 
-            // Wait inbetween requests
-            const waitPerIteration = 1000;
+            // How many grades distant neighbors should be retrieved
+            // depth = 1 means only direct neighbors of the original paper
+            let depth = 1;
 
-            // Requests data asynchronously
-            (function getCitedinForNextPaper(i) {
+            // Dictionary containing all links
+            let citedinDict = initialLinks;
+
+            // Recursive function called once for every iteration of depth
+            (function getCitedinForNextPapers(i, lastLinks) {
+
+                // Wait inbetween requests
                 setTimeout(() => {
-                    operations.push(new Promise(resolve => {
-                        getCitedinIDs(citedinArray[i], nextCitedinArray => {
-                            let outDict = {};
-                            outDict[citedinArray[i]] = nextCitedinArray;
-                            for (let citedinPaper of nextCitedinArray) {
-                                outDict[citedinPaper] = [];
-                            }
-                            resolve(outDict);
-                        });
-                    }));
-                    console.log("iteration " + i);
-                    if (--i) getCitedinForNextPaper(i);
-                }, waitPerIteration)
-            })(iterations);
 
-            // Wait until everything is requested
-            setTimeout(() => {
-                Promise.all(operations).then(d => {
+                    // Check which id's neighbors need to be retrieved next
+                    // Includes ids introduced in the last iteration minus the ones already considered
+                    let nextOrigins = Object.values(lastLinks)
+                        .reduce((concatenation, curr) => concatenation.concat(curr), [])
+                        .filter(id => !Object.keys(citedinDict).includes(id));
 
-                    // If all data is present, put it into the dictionary citedinDict
-                    let citedinDict = {};
-                    citedinDict[id] = citedinArray.slice(0, iterations);
-                    for (let dict of d) {
-                        for (let key in dict) {
-                            citedinDict[key] = key in citedinDict
-                                ? citedinDict[key].concat(dict[key])
-                                : citedinDict[key] = dict[key];
+                    // Retrieve the neighboring paper IDs
+                    getCitedinIDs(nextOrigins, nextCitedinDict => {
+
+                        // Add result to the main dictionary
+                        for (let key in nextCitedinDict) {
+                            citedinDict[key] = nextCitedinDict[key];
                         }
-                    }
-                    //console.log("citedinDict:");
-                    //console.log(citedinDict);
-                    draw(citedinDict);
-                });
-            }, iterations * waitPerIteration + 1000)
+
+                        // Desired depth not yet reached
+                        if (--i) getCitedinForNextPapers(i, nextCitedinDict);
+
+                        // Depth reached, finish recursion
+                        else {
+
+                            // Extend dictionary by indicating no entry = no links
+                            for (let valueArray of Object.values(citedinDict)) {
+                                for (let value of valueArray) {
+                                    if (!citedinDict.hasOwnProperty(value)) {
+                                        citedinDict[value] = [];
+                                    }
+                                }
+                            }
+
+                            // Start drawing
+                            draw(citedinDict);
+                        }
+                    });
+                }, waitPerIteration);
+            })(depth, initialLinks);
         });
     });
 });
@@ -337,28 +345,61 @@ function getCurrentPaperID(callback) {
 }
 
 /*
- * Given a paper's ID, pass an array containing all IDs of paper that cite the original paper to the callback function
- * @param originID: Paper ID that is being cited
+ * Given an array of paper IDs, pass a dictionary containing key-value-pairs for each element
+ * of the array mapped to an array of paper IDs that cite the element.
+ * @param idArray: Paper ID array that contaings elements which are being cited
  * @param callback: Function to be called upon data retrieval
  */
-function getCitedinIDs(originID, callback) {
-    const mainURL = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi";
-    const queries = "dbfrom=pubmed&db=pubmed&linkname=pubmed_pubmed_citedin&retmode=json&id=";
+function getCitedinIDs(idArray, callback) {
 
-    $.getJSON(mainURL + "?" + queries + originID, data => {
+    // Proxy to add Access-Control-Allow-Origin parameters to server response (now redundant)
+    //const corsProxy = "https://desolate-basin-70105.herokuapp.com/";
 
-        // Check if JSON object has the necessary attributes
-        if (Object.keys(data).includes("linksets")
-            && Object.keys(data.linksets[0]).includes("linksetdbs")
-            && Object.keys(data.linksets[0].linksetdbs[0]).includes("links")) {
+    const mainURL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi";
+    let queries = "dbfrom=pubmed&db=pubmed&linkname=pubmed_pubmed_citedin&retmode=json";
 
-            callback(data.linksets[0].linksetdbs[0].links.map(id => id.toString()));     // callback with array of IDs
+    // Add all ids to the query
+    for (let id of idArray) {
+        queries += "&id=" + id;
+    }
+    console.log("Requesting from " + mainURL + "?" + queries);
 
-        // JSON object does not contain "cited-in" IDs
-        } else {
-            callback([]);
-        }
-    });
+    // Amount of ids is small enough to request via HTTP GET which returns json data
+    if (idArray.length <= 25) {
+
+        // Request data, parse it, process it, call callback with processed data
+        $.getJSON(mainURL + "?" + queries, data => {
+            let idLinks = {};
+            if (Object.keys(data).includes("linksets")) {
+                for (let value of Object.values(data.linksets)) {
+                    idLinks[value.ids] = Object.keys(value).includes("linksetdbs")
+                        ? value.linksetdbs[0].links.map(l => l.toString())
+                        : [];
+                }
+            }
+            callback(idLinks);
+        });
+    }
+
+    // Too many ids for GET, request by HTTP POST instead which returns data as dictionary
+    else {
+
+        // Request data, process it, call callback with processed data
+        $.post({
+            url: mainURL,
+            proccessData: false,
+            data: queries,
+            success: data => {
+                let idLinks = {};
+                for (let linkset of data.linksets) {
+                    idLinks[linkset.ids[0]] = linkset.hasOwnProperty("linksetdbs")
+                        ? linkset.linksetdbs[0].links.map(l => l.toString())
+                        : [];
+                }
+                callback(idLinks);
+            }
+        });
+    }
 }
 
 /*
@@ -436,7 +477,7 @@ function calculateNetworkInfo(network) {
 
     // Calculate the rest of the info and return it
     return {
-        globalClust: addedClustering / Object.keys(localClustering).length,
+        globalClust: round(addedClustering / Object.keys(localClustering).length, 2),
         minClust: Object.values(localClustering).reduce((min, elem) => elem < min ? elem : min),
         maxClust: Object.values(localClustering).reduce((max, elem) => elem > max ? elem : max),
         minDeg: Object.values(network).reduce((min, elem) => elem.length < min ? elem.length : min, 0),

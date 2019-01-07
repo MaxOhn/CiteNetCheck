@@ -30,8 +30,10 @@ Once the icon is clicked, a small window will open, first retrieving data about 
 
 
 
-- Rewriting requests from [NCBI's E-Utilities API](https://www.ncbi.nlm.nih.gov/books/NBK25497/) for optimized data retrieval.
 - Functionality for all browsers (currently only Google Chrome)
+- Add user interaction to decide retrieval depth for neighboring nodes
+- Draw more nicely for large amount of nodes
+- Add Credits display
 
 
 # Dependencies / Credits
