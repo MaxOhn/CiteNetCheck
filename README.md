@@ -2,7 +2,7 @@
 
 
 
-CiteNetCheck is a browser extension written within the scope of my "Studienarbeit" at the [mHealth division](https://www.ukaachen.de/kliniken-institute/institut-fuer-medizinische-informatik/research/mhealth.html) of RWTH Aachen Uniklinik during the winter term 18/19.
+CiteNetCheck is a browser extension written within the scope of my "Studienarbeit" at the [mHealth division](https://mhealth.imib.rwth-aachen.de/) of the RWTH Aachen Uniklinik during the winter term 18/19.
 
 This extension retrieves data from [pubmed](https://www.ncbi.nlm.nih.gov/pubmed) of a papers local citation network and displays the network and some of its properties.
 
@@ -14,7 +14,7 @@ Preview:
 
 
 
-Once imported as browser extension, the extensions icon will lit up on pubmeds websites for papers, e.g.
+Once imported as browser extension, the extension's icon will lit up on pubmeds websites for papers, e.g.
 
  [Critical evaluation of the Newcastle-Ottawa scale for the assessment of the quality of nonrandomized studies in meta-analyses.](https://www.ncbi.nlm.nih.gov/pubmed/20652370)
 
@@ -33,7 +33,6 @@ Once the icon is clicked, a small window will open, first retrieving data about 
 - Functionality for all browsers (currently only Google Chrome)
 - Add user interaction to decide retrieval depth for neighboring nodes
 - Draw more nicely for large amount of nodes
-- Add Credits display
 
 
 # Dependencies / Credits

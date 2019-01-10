@@ -4,8 +4,13 @@
  */
 $(document).ready(() => {
 
-    // Prepares loading screen
+    // Start loading screen
     loadingScreen();
+
+    d3.select("button")
+        .on("click", showCredits);
+
+    ///*
 
     // Retrieve original paper ID from current webpage's url
     getCurrentPaperID(id => {
@@ -66,10 +71,31 @@ $(document).ready(() => {
             })(depth, initialLinks);
         });
     });
+    //*/
 });
 
 /*
- *  Draw loading animation and keep updating loading text
+ * Toggle the div element displaying credits information
+ */
+function showCredits() {
+    let creditsContainer = d3.select("#creditsContainer");
+    if (creditsContainer.style("visibility") == "hidden") {
+        creditsContainer.styles({
+            transition: "visibility .5s, opacity .5s",
+            visibility: "visible",
+            opacity: 1
+        });
+    } else {
+        creditsContainer.styles({
+            transition: "visibility .5s, opacity .5s",
+            visibility: "hidden",
+            opacity: 0
+        });
+    }
+}
+
+/*
+ * Draw loading animation and keep updating loading text
  */
 function loadingScreen() {
     let svg = d3.select("#networkCanvas");
@@ -90,9 +116,6 @@ function loadingScreen() {
             id: "loading-text",
             x: getCanvasWidth() / 2 - "Retrieving data".length * 15 / 2,
             y: getCanvasHeight() / 2 + 70
-        })
-        .styles({
-            "font-size": "30px"
         });
 
     // Update text every 500ms
@@ -121,8 +144,9 @@ function getCanvasHeight() {
 }
 
 /*
- *  Draw the network
- *  @param citeDict: Dictionary where keys are IDs of papers and values are arrays of IDs of papers which cite their key paper
+ * Draw the network
+ *
+ * @param citeDict: Dictionary where keys are IDs of papers and values are arrays of IDs of papers which cite their key paper
  */
 function draw(citeDict) {
 
@@ -196,12 +220,7 @@ function draw(citeDict) {
             markerHeight: "6"
         })
         .append("path")
-        .attr("d", "M0,0 L5,3 L0,6")
-        .styles({
-            stroke: "black",
-            fill: "none",
-            "stroke-width": "1",
-        });
+        .attr("d", "M0,0 L5,3 L0,6");
 
     // Visual link data
     link = link.data(links)
@@ -231,19 +250,21 @@ function draw(citeDict) {
             .on("end", dragended)
     );
 
-    // Marker node of initial paper
-    node.filter((d, i) => i == 0)
+    // Mark node of initial paper
+    node.filter((_, i) => i == 0)
         .styles({
             fill: "red",
             stroke: "black",
             "stroke-width": 1
         });
 
-    // Auxiliary variable to trigger paperID label
+    // Auxiliary variables to trigger paperID label
+    let hover = false;
     let dragging = false;
 
     // Enlargens the node upon hovering and displays the node's paper ID
     function handleMouseOver(d, i) {
+        hover = true;
         d3.select(this)
             .transition()
             .duration(100)
@@ -256,13 +277,15 @@ function draw(citeDict) {
             .on("end", () => {
                 if (d3.select("#t" + d.paperID + "-" + i).size() == 0) {
                     svg.append("text")
-                        .attr("id", "t" + d.paperID + "-" + i)
-                        .style("font-weight", "bold")
+                        .attrs({
+                            class: "labelPaperId",
+                            id: "t" + d.paperID + "-" + i
+                        })
                         .text(d.paperID);
                 }
                 d3.select("#t" + d.paperID + "-" + i)
                     .attrs({
-                        x: d.x - d.paperID.length * 7 / 2,
+                        x: d.x - d.paperID.length * 11 / 2,
                         y: d.y - 15
                     });
             });
@@ -270,6 +293,7 @@ function draw(citeDict) {
 
     // Shrinks the node again and removes the paper ID
     function handleMouseOut(d, i) {
+        hover = false;
         d3.select(this)
             .transition()
             .duration(100)
@@ -299,7 +323,7 @@ function draw(citeDict) {
         d.fy = d3.event.y;
         d3.select("#t" + d.paperID + "-" + i)
             .attrs({
-                x: d.x - d.paperID.length * 7 / 2,
+                x: d.x - d.paperID.length * 11 / 2,
                 y: d.y - 15
             });
     }
@@ -311,7 +335,8 @@ function draw(citeDict) {
             force.alphaTarget(0);
         d.fx = null;
         d.fy = null;
-        d3.select("#t" + d.paperID + "-" + i).remove();
+        if (!hover)
+            d3.select("#t" + d.paperID + "-" + i).remove();
     }
 
     // Draw info about the network (clustering & degrees)
@@ -320,6 +345,7 @@ function draw(citeDict) {
 
 /*
  * Get current tab, read its url, extract paper ID from it and pass it to callback
+ *
  * @param callback: Function to be called upon data retrieval
  */
 function getCurrentPaperID(callback) {
@@ -329,6 +355,7 @@ function getCurrentPaperID(callback) {
 /*
  * Given an array of paper IDs, pass a dictionary containing key-value-pairs for each element
  * of the array mapped to an array of paper IDs that cite the element.
+ *
  * @param idArray: Paper ID array that contaings elements which are being cited
  * @param callback: Function to be called upon data retrieval
  */
@@ -470,6 +497,7 @@ function calculateNetworkInfo(network) {
 /*
  * Adds info about the network in the upper left corner of the SVG
  * This info includes everything returned from the calculateNetworkInfo function
+ *
  * @param network: Dictionary of the network (key node maps to array of nodes)
  */
 function drawLegend(network) {
@@ -503,6 +531,7 @@ function drawLegend(network) {
 /*
  * Auxiliary function to round number
  * @param num: Number to be rounded
+ *
  * @param precision: Decimal places to be taken into account
  */
 function round(num, precision) {

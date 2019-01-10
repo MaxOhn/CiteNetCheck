@@ -15,4 +15,121 @@ html body {
     height: 100%;
     border: 3px solid black;
     margin: auto;
+    border-radius: 5px;
+}
+
+#creditsContainer {
+    width: 525px;
+    height: 375px;
+    border-radius: 15px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin-left: 95px;
+    margin-top: 70px;
+    border: 2px solid black;
+    background-color: #dadada;
+    box-shadow: 5px 10px #888888;
+    overflow: hidden;
+}
+
+.tableTd {
+    font-size: 20px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+#loading-text {
+    font-size: 30px;
+    font-family: sans-serif
+}
+
+#marker {
+    stroke: black;
+    stroke-width: 1,
+}
+
+.labelPaperId {
+    font-size: 20px;
+    font-weight: bold;
+    fill: white;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000
+}
+
+@import url(https://fonts.googleapis.com/css?family=Raleway:300);
+
+button {
+    position: absolute;
+    right: 0;
+    top: 0;
+    margin-top: 15px;
+    margin-right: 10px;
+}
+
+button {
+    background: #333;
+    color: #ccc;
+    width: 90px;
+    height: 35px;
+    border: 0;
+    font-size: 18px;
+    border-radius: 8px;
+    font-family: 'Raleway', sans-serif;
+    transition: .6s;
+    overflow: hidden;
+}
+
+button:focus {
+    outline: 0;
+}
+
+button:before {
+    content: '';
+    display: block;
+    position: absolute;
+    background: rgba(255, 255, 255, 0.5);
+    width: 60px;
+    height: 100%;
+    left: 0;
+    top: 0;
+    opacity: .5;
+    -webkit-filter: blur(30px);
+    filter: blur(30px);
+    -webkit-transform: translateX(-100px) skewX(-15deg);
+    transform: translateX(-100px) skewX(-15deg);
+}
+
+button:after {
+    content: '';
+    display: block;
+    position: absolute;
+    background: rgba(255, 255, 255, 0.2);
+    width: 30px;
+    height: 100%;
+    left: 30px;
+    top: 0;
+    opacity: 0;
+    -webkit-filter: blur(5px);
+    filter: blur(5px);
+    -webkit-transform: translateX(-100px) skewX(-15deg);
+    transform: translateX(-100px) skewX(-15deg);
+}
+
+button:hover {
+    background: #464646;
+    cursor: pointer;
+}
+
+button:hover:before {
+    -webkit-transform: translateX(300px) skewX(-15deg);
+    transform: translateX(300px) skewX(-15deg);
+    opacity: 0.6;
+    transition: 1s;
+}
+
+button:hover:after {
+    -webkit-transform: translateX(300px) skewX(-15deg);
+    transform: translateX(300px) skewX(-15deg);
+    opacity: 1;
+    transition: 1s;
 }
