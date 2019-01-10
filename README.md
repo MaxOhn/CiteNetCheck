@@ -4,11 +4,11 @@
 
 CiteNetCheck is a browser extension written within the scope of my "Studienarbeit" at the [mHealth division](https://mhealth.imib.rwth-aachen.de/) of the RWTH Aachen Uniklinik during the winter term 18/19.
 
-This extension retrieves data from [pubmed](https://www.ncbi.nlm.nih.gov/pubmed) of a papers local citation network and displays the network and some of its properties.
+This extension retrieves data from [pubmed](https://www.ncbi.nlm.nih.gov/pubmed) of a paper's local citation network and displays the network and some of its properties.
 
 Preview: 
 
-![Preview](https://puu.sh/Cr6Rv/2440428731.gif)
+![Preview](https://puu.sh/CunbV/74d54a29b3.gif)
 
 # Usage
 

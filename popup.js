@@ -7,7 +7,7 @@ $(document).ready(() => {
     // Start loading screen
     loadingScreen();
 
-    d3.select("button")
+    d3.select("#creditsButton")
         .on("click", showCredits);
 
     ///*
@@ -23,7 +23,7 @@ $(document).ready(() => {
 
             // How many degrees of distant neighbors should be retrieved (+ 1)
             // depth = 1 means all neighbors of 2nd degree of the initial paper ID
-            let depth = 1;
+            let depth = 3;
 
             // Dictionary containing all links, i.e. all the info for the drawing part
             let citedinDict = initialLinks;
@@ -530,8 +530,8 @@ function drawLegend(network) {
 
 /*
  * Auxiliary function to round number
- * @param num: Number to be rounded
  *
+ * @param num: Number to be rounded
  * @param precision: Decimal places to be taken into account
  */
 function round(num, precision) {
