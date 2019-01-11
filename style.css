@@ -58,15 +58,12 @@ html body {
 
 @import url(https://fonts.googleapis.com/css?family=Raleway:300);
 
-button {
+#creditsButton {
     position: absolute;
     right: 0;
     top: 0;
     margin-top: 15px;
     margin-right: 10px;
-}
-
-button {
     background: #333;
     color: #ccc;
     width: 90px;
@@ -79,11 +76,11 @@ button {
     overflow: hidden;
 }
 
-button:focus {
+#creditsButton:focus {
     outline: 0;
 }
 
-button:before {
+#creditsButton:before {
     content: '';
     display: block;
     position: absolute;
@@ -99,7 +96,7 @@ button:before {
     transform: translateX(-100px) skewX(-15deg);
 }
 
-button:after {
+#creditsButton:after {
     content: '';
     display: block;
     position: absolute;
@@ -115,19 +112,19 @@ button:after {
     transform: translateX(-100px) skewX(-15deg);
 }
 
-button:hover {
+#creditsButton:hover {
     background: #464646;
     cursor: pointer;
 }
 
-button:hover:before {
+#creditsButton:hover:before {
     -webkit-transform: translateX(300px) skewX(-15deg);
     transform: translateX(300px) skewX(-15deg);
     opacity: 0.6;
     transition: 1s;
 }
 
-button:hover:after {
+#creditsButton:hover:after {
     -webkit-transform: translateX(300px) skewX(-15deg);
     transform: translateX(300px) skewX(-15deg);
     opacity: 1;

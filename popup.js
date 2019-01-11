@@ -1,5 +1,15 @@
 
 /*
+ * Global variables for repeated use
+ */
+// Dictionary containing all links, i.e. all the info for the drawing part
+let citedinDict = {};
+
+// How many degrees of distant neighbors should be retrieved (+ 1)
+// depth = 1 means up to all neighbors of 2nd degree of the initial paper ID
+let depth = 2;
+
+/*
  * Executed once the extension page is ready after clicking the icon
  */
 $(document).ready(() => {
@@ -8,9 +18,16 @@ $(document).ready(() => {
     loadingScreen();
 
     d3.select("#creditsButton")
-        .on("click", showCredits);
+        .on("click", toggleCredits);
 
-    ///*
+    // Organize the requests, then draw
+    sequenceRequests();
+});
+
+/*
+ * Function determining what exactly to request, when to request, and in what order to request
+ */
+function sequenceRequests() {
 
     // Retrieve original paper ID from current webpage's url
     getCurrentPaperID(id => {
@@ -21,12 +38,7 @@ $(document).ready(() => {
             // 3 requests per second are allowed, let's not overdo it
             const waitPerIteration = 750;
 
-            // How many degrees of distant neighbors should be retrieved (+ 1)
-            // depth = 1 means all neighbors of 2nd degree of the initial paper ID
-            let depth = 3;
-
-            // Dictionary containing all links, i.e. all the info for the drawing part
-            let citedinDict = initialLinks;
+            citedinDict = initialLinks;
 
             // Recursive function called once for every iteration of depth
             (function getCitedinForNextPapers(i, lastLinks) {
@@ -71,13 +83,12 @@ $(document).ready(() => {
             })(depth, initialLinks);
         });
     });
-    //*/
-});
+}
 
 /*
  * Toggle the div element displaying credits information
  */
-function showCredits() {
+function toggleCredits() {
     let creditsContainer = d3.select("#creditsContainer");
     if (creditsContainer.style("visibility") == "hidden") {
         creditsContainer.styles({
@@ -367,9 +378,13 @@ function getCitedinIDs(idArray, callback) {
     const mainURL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi";
     let queries = "dbfrom=pubmed&db=pubmed&linkname=pubmed_pubmed_citedin&retmode=json";
 
+    let counter = 0;
+
     // Add all ids to the query
     for (let id of idArray) {
         queries += "&id=" + id;
+        if (counter++ > 250)
+            break;
     }
     console.log("Requesting from " + mainURL + "?" + queries);
 

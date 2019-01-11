@@ -16,14 +16,26 @@
 </head>
 <body>
     <div id="container">
-        <button>Credits</button>
-        <svg id="networkCanvas"></svg>
+        <button id="creditsButton">Credits</button>
+        <svg id="networkCanvas">
+            <foreignObject x="5" y="475" width="250" height="50">
+                <div>
+                    <span style="font-size: 15px; font-family:sans-serif">Depth:</span>
+                    <span>
+                        <input type="number" value=2 min=2 max=50 />
+                    </span>
+                    <span>
+                        <button style="margin-left: 5px;">Update</button>
+                    </span>
+                </div>
+            </foreignObject>
+        </svg>
         <div id="creditsContainer" style="visibility: hidden; opacity: 0">
             <table border=1 style="width: 100%;">
                 <tbody>
                     <tr>
                         <td class="tableTd">
-                            Created by Max Ohn as 'Studienarbeit' during the winter term 18/19 at <a target="_blank" href="https://mhealth.imib.rwth-aachen.de/">RWTH Aachen's mHealth division</a>
+                            Created by <a target="_blank" href="https://github.com/MaxOhn/CiteNetCheck">Max Ohn</a> as 'Studienarbeit' during the winter term 18/19 at <a target="_blank" href="https://mhealth.imib.rwth-aachen.de/">RWTH Aachen's mHealth division</a>
                         </td>
                     </tr>
                     <tr>
