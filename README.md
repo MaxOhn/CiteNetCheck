@@ -8,7 +8,7 @@ This extension retrieves data from [pubmed](https://www.ncbi.nlm.nih.gov/pubmed)
 
 Preview: 
 
-![Preview](https://puu.sh/CunbV/74d54a29b3.gif)
+![Preview](https://puu.sh/Cv72W/aa43060470.gif)
 
 # Usage
 
@@ -31,7 +31,6 @@ Once the icon is clicked, a small window will open, first retrieving data about 
 
 
 - Functionality for all browsers (currently only Google Chrome)
-- Add user interaction to decide retrieval depth for neighboring nodes
 - Draw more nicely for large amount of nodes
 
 

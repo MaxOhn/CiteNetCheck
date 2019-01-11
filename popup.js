@@ -4,10 +4,15 @@
  */
 // Dictionary containing all links, i.e. all the info for the drawing part
 let citedinDict = {};
+let maxCitedinDict = {};
 
-// How many degrees of distant neighbors should be retrieved (+ 1)
-// depth = 1 means up to all neighbors of 2nd degree of the initial paper ID
+// Keeps track which nodes were added at which depth
+let depthNodesAdded = {};
+
+// How many degrees of distant neighbors should be retrieved
+// depth = 2 means up to all neighbors of 2nd degree of the initial paper ID
 let depth = 2;
+let maxDepth = 2;
 
 /*
  * Executed once the extension page is ready after clicking the icon
@@ -15,74 +20,92 @@ let depth = 2;
 $(document).ready(() => {
 
     // Start loading screen
-    loadingScreen();
+    startLoadingScreen();
 
+    // Add functions to buttons
     d3.select("#creditsButton")
         .on("click", toggleCredits);
-
-    // Organize the requests, then draw
-    sequenceRequests();
-});
-
-/*
- * Function determining what exactly to request, when to request, and in what order to request
- */
-function sequenceRequests() {
+    d3.select("#depthUpdateButton")
+        .on("click", updateDepth);
 
     // Retrieve original paper ID from current webpage's url
     getCurrentPaperID(id => {
+        depthNodesAdded[0] = [id];
 
-        // Retrieve all paper IDs citing the original paper
-        getCitedinIDs([id], initialLinks => {
-
-            // 3 requests per second are allowed, let's not overdo it
-            const waitPerIteration = 750;
-
-            citedinDict = initialLinks;
-
-            // Recursive function called once for every iteration of depth
-            (function getCitedinForNextPapers(i, lastLinks) {
-
-                // Wait inbetween requests
-                setTimeout(() => {
-
-                    // Check which id's neighbors need to be retrieved next
-                    // Includes IDs introduced in the last iteration minus the ones already considered
-                    let nextOrigins = Object.values(lastLinks)
-                        .reduce((concatenation, curr) => concatenation.concat(curr), [])
-                        .filter(id => !Object.keys(citedinDict).includes(id));
-
-                    // Retrieve the neighboring paper IDs
-                    getCitedinIDs(nextOrigins, nextCitedinDict => {
-
-                        // Add result to the main dictionary
-                        for (let key in nextCitedinDict) {
-                            citedinDict[key] = nextCitedinDict[key];
-                        }
-
-                        // Desired depth not yet reached, stay in recursion
-                        if (--i) getCitedinForNextPapers(i, nextCitedinDict);
-
-                        // Depth reached, finish recursion
-                        else {
-
-                            // Extend dictionary by indicating "no entry = no links"
-                            for (let valueArray of Object.values(citedinDict)) {
-                                for (let value of valueArray) {
-                                    if (!citedinDict.hasOwnProperty(value)) {
-                                        citedinDict[value] = [];
-                                    }
-                                }
-                            }
-
-                            // Start drawing
-                            draw(citedinDict);
-                        }
-                    });
-                }, waitPerIteration);
-            })(depth, initialLinks);
-        });
+        // Recursive function called once for every iteration of depth
+        getCitedinForNextPapers(depth);
     });
+});
+
+/*
+ * Keeps requesting for the next depth layer until the desired depth is reached
+ *
+ * @param i: Amount of recursions left
+ */
+function getCitedinForNextPapers(i) {
+
+    // 3 requests per second are allowed, let's not overdo it
+    const waitPerIteration = 750;
+
+    // Wait inbetween requests
+    setTimeout(() => {
+
+        // Retrieve the neighboring paper IDs
+        getCitedinIDs(depthNodesAdded[depth - i], nextCitedinDict => {
+
+            // Check which id's neighbors need to be retrieved next
+            // Includes IDs introduced in the last iteration minus the ones already considered
+            depthNodesAdded[depth - i + 1] = Object.values(nextCitedinDict)
+                .reduce((concatenation, curr) => concatenation.concat(curr), [])
+                .filter(id => !Object.keys(citedinDict).includes(id));
+
+            // Add result to the main dictionary
+            for (let key in nextCitedinDict) {
+                citedinDict[key] = nextCitedinDict[key];
+            }
+
+            // Desired depth not yet reached, stay in recursion
+            if (--i) getCitedinForNextPapers(i);
+
+            // Depth reached, finish recursion
+            else {
+
+                // Add "no links" to leaf nodes
+                extendDict();
+
+                // Information was gained, save it permanently
+                updateMaxValues();
+
+                // Start drawing the network
+                draw();
+            }
+        });
+    }, waitPerIteration);
+}
+
+/*
+ * Extend citedinDict by indicating "no entry = no links"
+ */
+function extendDict() {
+    for (let valueArray of Object.values(citedinDict)) {
+        for (let value of valueArray) {
+            if (!citedinDict.hasOwnProperty(value)) {
+                citedinDict[value] = [];
+            }
+        }
+    }
+}
+
+/*
+ * Save all information permanently in case e.g. the currently used dict becomes smaller
+ * and later on extended again.
+ */
+function updateMaxValues() {
+    if (depth > maxDepth)
+        maxDepth = depth;
+    if (Object.keys(citedinDict).length > Object.keys(maxCitedinDict).length)
+        for (let key in citedinDict)
+            maxCitedinDict[key] = citedinDict[key];
 }
 
 /*
@@ -106,10 +129,66 @@ function toggleCredits() {
 }
 
 /*
+ * Depending on how depth was changed, request more data or modify current dictionary entries
+ * and redraw network
+ */
+function updateDepth() {
+
+    // Get input element value
+    let newDepth = parseInt(d3.select("#depthInput")
+        .property("value"));
+
+    // Delete previous drawing
+    removeCanvasContent();
+
+    // If newDepth is larger than the current max, retrieve additional data
+    if (newDepth > maxDepth) {
+        startLoadingScreen();
+        for (let key in maxCitedinDict) {
+            citedinDict[key] = maxCitedinDict[key];
+        }
+        getCitedinForNextPapers(newDepth - maxDepth);
+        depth = newDepth;
+        updateMaxValues();
+    } else {
+
+        // If newDepth is smaller than current depth, remove some nodes and redraw
+        if (depth > newDepth) {
+            for (let i = newDepth; i < maxDepth + 1; i++) {
+                for (let savedID of depthNodesAdded[i]) {
+                    delete citedinDict[savedID];
+                }
+            }
+
+        // If newDepth is greater than depth but smaller than the max, copy data from previous max
+        } else {
+            for (let i = depth; i < newDepth; i++) {
+                for (let savedID of depthNodesAdded[i]) {
+                    citedinDict[savedID] = maxCitedinDict[savedID];
+                }
+            }
+        }
+
+        // Add "no links" to leaf nodes
+        extendDict();
+
+        // Save new depth and start drawing
+        depth = newDepth;
+        draw();
+    }
+}
+
+/*
  * Draw loading animation and keep updating loading text
  */
-function loadingScreen() {
+function startLoadingScreen() {
     let svg = d3.select("#networkCanvas");
+
+    // Hide the input div
+    d3.select("#depthInputDiv")
+        .styles({
+            visibility: "hidden"
+        })
 
     // Loading animation
     svg.append("image")
@@ -141,6 +220,18 @@ function loadingScreen() {
 }
 
 /*
+ * Removing loading screen elements and show input elements
+ */
+function stopLoadingScreen() {
+    d3.select("#loading-animation").remove();
+    d3.select("#loading-text").remove();
+    d3.select("#depthInputDiv")
+        .styles({
+            visibility: "visible"
+        });
+}
+
+/*
  * Global function to return SVG canvas width
  */
 function getCanvasWidth() {
@@ -155,15 +246,22 @@ function getCanvasHeight() {
 }
 
 /*
+ * Remove all object in the canvas i.e. nodes, links, side info
+ */
+function removeCanvasContent() {
+    d3.selectAll(".node").remove();
+    d3.selectAll(".link").remove();
+    d3.selectAll(".infoDisplay").remove();
+}
+
+/*
  * Draw the network
  *
  * @param citeDict: Dictionary where keys are IDs of papers and values are arrays of IDs of papers which cite their key paper
  */
-function draw(citeDict) {
+function draw() {
 
-    // Remove elements of the loading screen
-    d3.select("#loading-animation").remove();
-    d3.select("#loading-text").remove();
+    stopLoadingScreen();
 
     const svg = d3.select("#networkCanvas");
 
@@ -176,7 +274,7 @@ function draw(citeDict) {
     // nodes is an array containing objects of the form {x: a, y: b, paperID: c}
     // a and b are random with respect to the window size
     // c is the paperID as a string
-    let nodes = Object.keys(citeDict).map(key => {
+    let nodes = Object.keys(citedinDict).map(key => {
         return {
             x: Math.random() * getCanvasWidth(),
             y: Math.random() * getCanvasHeight(),
@@ -186,8 +284,8 @@ function draw(citeDict) {
 
     // links is an array containing elements of the form {source: a, target: b}
     // a is a paper in nodes that was cited by paper b in nodes
-    let links = Object.keys(citeDict).reduce((currLinks, currKey) => {
-        return currLinks.concat(citeDict[currKey]
+    let links = Object.keys(citedinDict).reduce((currLinks, currKey) => {
+        return currLinks.concat(citedinDict[currKey]
             .map(citedinID => {
                 return {
                     source: nodes.find(n => n.paperID == currKey),
@@ -281,7 +379,7 @@ function draw(citeDict) {
             .duration(100)
             .attr("r", 10)
             .styles({
-                fill: () => d.paperID == Object.keys(citeDict)[0] ? "red" : "white",
+                fill: () => d.paperID == Object.keys(citedinDict)[0] ? "red" : "white",
                 stroke: "black",
                 "stroke-width": 3
             })
@@ -310,12 +408,12 @@ function draw(citeDict) {
             .duration(100)
             .attr("r", 3)
             .styles({
-                fill: () => d.paperID == Object.keys(citeDict)[0] ? "red" : "black",
+                fill: () => d.paperID == Object.keys(citedinDict)[0] ? "red" : "black",
                 stroke: "black",
                 "stroke-width": 1
             });
         if (!dragging) {
-            d3.select("#t" + d.paperID + "-" + i).remove();
+            d3.selectAll(".labelPaperId").remove();
         }
     }
 
@@ -347,11 +445,11 @@ function draw(citeDict) {
         d.fx = null;
         d.fy = null;
         if (!hover)
-            d3.select("#t" + d.paperID + "-" + i).remove();
+            d3.selectAll(".labelPaperId").remove();
     }
 
     // Draw info about the network (clustering & degrees)
-    drawLegend(citeDict);
+    drawLegend(citedinDict);
 }
 
 /*
@@ -371,6 +469,12 @@ function getCurrentPaperID(callback) {
  * @param callback: Function to be called upon data retrieval
  */
 function getCitedinIDs(idArray, callback) {
+
+    // Dont request anything if no id's specified
+    if (idArray.length == 0) {
+        callback({});
+        return;
+    }
 
     // Proxy to add Access-Control-Allow-Origin parameters to server response (now redundant)
     //const corsProxy = "https://desolate-basin-70105.herokuapp.com/";
@@ -532,7 +636,7 @@ function drawLegend(network) {
         .enter()
         .append("text")
         .attrs({
-            class: "infoDispplay",
+            class: "infoDisplay",
             x: 10,
             y: (_, i) => 15 * (i + 1)
         })
