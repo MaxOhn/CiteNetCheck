@@ -17,19 +17,19 @@
 <body>
     <div id="container">
         <button id="creditsButton">Credits</button>
-        <svg id="networkCanvas">
-            <foreignObject x="5" y="475" width="250" height="50">
-                <div id="depthInputDiv">
-                    <span style="font-size: 15px; font-family:sans-serif">Depth:</span>
-                    <span>
-                        <input id="depthInput" type="number" value=2 min=1 max=40 />
-                    </span>
-                    <span>
-                        <button id="depthUpdateButton" style="margin-left: 5px;">Update</button>
-                    </span>
-                </div>
-            </foreignObject>
+        <svg id="svgCanvas">
+            <rect width="700" height="500" style="fill: none; pointer-events: all"></rect>
+            <g id="networkCanvas"></g>
         </svg>
+        <div id="depthInputDiv">
+            <span style="font-size: 15px; font-family:sans-serif">Depth:</span>
+            <span>
+                <input id="depthInput" type="number" value=2 min=1 max=20 />
+            </span>
+            <span>
+                <button id="depthUpdateButton" style="margin-left: 5px;">Update</button>
+            </span>
+        </div>
         <div id="creditsContainer" style="visibility: hidden; opacity: 0">
             <table border=1 style="width: 100%;">
                 <tbody>
@@ -50,7 +50,7 @@
                     </tr>
                     <tr>
                         <td class="tableTd">
-                           Icon from <a target="_blank" href="https://www.flaticon.com/authors/smashicons">Smashicons</a>
+                            Icon from <a target="_blank" href="https://www.flaticon.com/authors/smashicons">Smashicons</a>
                         </td>
                     </tr>
                 </tbody>

@@ -27,14 +27,22 @@ $(document).ready(() => {
         .on("click", toggleCredits);
     d3.select("#depthUpdateButton")
         .on("click", updateDepth);
+    document.getElementById("depthInput").addEventListener("change", function (e) {
+        console.log(e.target.value);
+        console.log(e);
+    })
 
+    ///*
     // Retrieve original paper ID from current webpage's url
     getCurrentPaperID(id => {
+
+        // At depth 0, only the original paper id is added
         depthNodesAdded[0] = [id];
 
         // Recursive function called once for every iteration of depth
         getCitedinForNextPapers(depth);
     });
+    //*/
 });
 
 /*
@@ -141,18 +149,18 @@ function updateDepth() {
     // Delete previous drawing
     removeCanvasContent();
 
-    // If newDepth is larger than the current max, retrieve additional data
+    // If newDepth is larger than the current max, retrieve additional data and draw
     if (newDepth > maxDepth) {
         startLoadingScreen();
         for (let key in maxCitedinDict) {
             citedinDict[key] = maxCitedinDict[key];
         }
-        getCitedinForNextPapers(newDepth - maxDepth);
         depth = newDepth;
-        updateMaxValues();
+        let asyncPromise = new Promise(resolve => resolve(getCitedinForNextPapers(newDepth - maxDepth)));
+        asyncPromise.then(_ => updateMaxValues());
     } else {
 
-        // If newDepth is smaller than current depth, remove some nodes and redraw
+        // If newDepth is smaller than current depth, remove some nodes
         if (depth > newDepth) {
             for (let i = newDepth; i < maxDepth + 1; i++) {
                 for (let savedID of depthNodesAdded[i]) {
@@ -182,7 +190,7 @@ function updateDepth() {
  * Draw loading animation and keep updating loading text
  */
 function startLoadingScreen() {
-    let svg = d3.select("#networkCanvas");
+    let svg = d3.select("#svgCanvas");
 
     // Hide the input div
     d3.select("#depthInputDiv")
@@ -235,14 +243,14 @@ function stopLoadingScreen() {
  * Global function to return SVG canvas width
  */
 function getCanvasWidth() {
-    return Math.round(d3.select("#networkCanvas").style("width").replace("px", ""));
+    return Math.round(d3.select("#svgCanvas").style("width").replace("px", ""));
 }
 
 /*
  * Global function to return SVG canvas height
  */
 function getCanvasHeight() {
-    return Math.round(d3.select("#networkCanvas").style("height").replace("px", ""));
+    return Math.round(d3.select("#svgCanvas").style("height").replace("px", ""));
 }
 
 /*
@@ -264,9 +272,21 @@ function draw() {
     stopLoadingScreen();
 
     const svg = d3.select("#networkCanvas");
-
     const widthNetwork = getCanvasWidth();
     const heightNetwork = getCanvasHeight();
+
+    const zoom = d3.zoom()
+        .scaleExtent([1, 4])
+        .on("zoom", zoomed);
+
+    // Add zoom but disable double-click zoom
+    d3.select("#svgCanvas").call(zoom)
+        .on("dblclick.zoom", null);
+
+    const drag = d3.drag()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended);
 
     let node = svg.selectAll(".node");
     let link = svg.selectAll(".link");
@@ -316,7 +336,8 @@ function draw() {
         .force("x", d3.forceX(widthNetwork / 2).strength(0.1))
         .force("y", d3.forceY(heightNetwork / 2).strength(0.1))
         .force("link", d3.forceLink(links).distance(40).strength(0.1))
-        .force("charge", d3.forceManyBody().strength(-70));
+        .force("charge", d3.forceManyBody().strength(-40))
+        ;
 
     // Visual arrow head template
     svg.append("marker")
@@ -338,7 +359,7 @@ function draw() {
         .attr("class", "link")
         .styles({
             stroke: "black",
-            "stroke-width": 1,
+            "stroke-width": 0.8,
             "marker-end": "url(#arrow)"
         });
 
@@ -348,16 +369,12 @@ function draw() {
         .append("circle")
         .attrs({
             class: "node",
-            r: 3
+            r: 2
         })
         .style("background-color", "black")
         .on("mouseover", handleMouseOver)
         .on("mouseout", handleMouseOut)
-        .call(d3.drag()
-            .on("start", dragstarted)
-            .on("drag", dragged)
-            .on("end", dragended)
-    );
+        .call(drag);
 
     // Mark node of initial paper
     node.filter((_, i) => i == 0)
@@ -366,6 +383,13 @@ function draw() {
             stroke: "black",
             "stroke-width": 1
         });
+
+    // MouseWheel zoom and canvas movement by dragging
+    function zoomed() {
+        svg.attr(
+            "transform", "translate(" + d3.event.transform.x + "," + d3.event.transform.y + ")scale(" + d3.event.transform.k + ")"
+        );
+    }
 
     // Auxiliary variables to trigger paperID label
     let hover = false;
@@ -401,20 +425,19 @@ function draw() {
     }
 
     // Shrinks the node again and removes the paper ID
-    function handleMouseOut(d, i) {
+    function handleMouseOut(d) {
         hover = false;
         d3.select(this)
             .transition()
             .duration(100)
-            .attr("r", 3)
+            .attr("r", 2)
             .styles({
                 fill: () => d.paperID == Object.keys(citedinDict)[0] ? "red" : "black",
                 stroke: "black",
                 "stroke-width": 1
             });
-        if (!dragging) {
+        if (!dragging)
             d3.selectAll(".labelPaperId").remove();
-        }
     }
 
     // Restarts the force between the nodes upon mouse press on a node
@@ -424,6 +447,7 @@ function draw() {
             force.alphaTarget(0.3).restart();
         d.fx = d.x;
         d.fy = d.y;
+        d3.event.sourceEvent.stopPropagation();
     }
 
     // Triggered each tick while a node is pressed, moves the node and its paper ID text
@@ -435,10 +459,15 @@ function draw() {
                 x: d.x - d.paperID.length * 11 / 2,
                 y: d.y - 15
             });
+        d3.select(this)
+            .attrs({
+                cx: d.x = d3.event.x,
+                cy: d.y = d3.event.y
+            });
     }
 
     // Triggered upon mouse release on a node, determines force end and removes paper ID
-    function dragended(d, i) {
+    function dragended(d) {
         dragging = false;
         if (!d3.event.active)
             force.alphaTarget(0);
@@ -458,7 +487,10 @@ function draw() {
  * @param callback: Function to be called upon data retrieval
  */
 function getCurrentPaperID(callback) {
-    chrome.tabs.query({ active: true, lastFocusedWindow: true }, tabs => callback(tabs[0].url.split("/pubmed/").pop()));
+    chrome.tabs.query({
+        active: true,
+        lastFocusedWindow: true
+    }, tabs => callback(tabs[0].url.split("/pubmed/").pop()));
 }
 
 /*
@@ -470,7 +502,7 @@ function getCurrentPaperID(callback) {
  */
 function getCitedinIDs(idArray, callback) {
 
-    // Dont request anything if no id's specified
+    // Dont request anything if no ids specified
     if (idArray.length == 0) {
         callback({});
         return;
@@ -495,7 +527,7 @@ function getCitedinIDs(idArray, callback) {
     // Amount of ids is small enough to request via HTTP GET which returns json data
     if (idArray.length <= 25) {
 
-        // Request data, parse it, process it, call callback with processed data
+        // Request data, process it, call callback with processed data
         $.getJSON(mainURL + "?" + queries, data => {
             let idLinks = {};
             if (Object.keys(data).includes("linksets")) {
@@ -624,7 +656,7 @@ function drawLegend(network) {
     // Dictionary containing info like clustering coefficients or degrees of the network
     const networkInfo = calculateNetworkInfo(network);
 
-    d3.select("#networkCanvas")
+    d3.select("#svgCanvas")
         .selectAll(".infoDisplay")
         .data([
             { t: "Min Degree", num: networkInfo.minDeg },
@@ -639,10 +671,6 @@ function drawLegend(network) {
             class: "infoDisplay",
             x: 10,
             y: (_, i) => 15 * (i + 1)
-        })
-        .styles({
-            "font-family": "sans-serif",
-            "font-size": "11px"
         })
         .text(d => d.t + ": " + d.num);
 }
