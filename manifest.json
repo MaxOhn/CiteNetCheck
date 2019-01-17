@@ -3,7 +3,7 @@
   "name": "CiteNetCheck",
   "author": "Max Ohn",
   "version": "1.0.0",
-  "description": "Analyze the local citation network of a published paper.",
+  "description": "Analyze the local citation network of a published pubmed paper.",
   "background": {
     "scripts": [ "background.js" ],
     "persistence": false

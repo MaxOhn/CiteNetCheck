@@ -12,7 +12,6 @@ let depthNodesAdded = {};
 // How many degrees of distant neighbors should be retrieved
 // depth = 2 means up to all neighbors of 2nd degree of the initial paper ID
 let depth = 2;
-let maxDepth = 2;
 
 /*
  * Executed once the extension page is ready after clicking the icon
@@ -27,10 +26,6 @@ $(document).ready(() => {
         .on("click", toggleCredits);
     d3.select("#depthUpdateButton")
         .on("click", updateDepth);
-    document.getElementById("depthInput").addEventListener("change", function (e) {
-        console.log(e.target.value);
-        console.log(e);
-    })
 
     ///*
     // Retrieve original paper ID from current webpage's url
@@ -109,8 +104,6 @@ function extendDict() {
  * and later on extended again.
  */
 function updateMaxValues() {
-    if (depth > maxDepth)
-        maxDepth = depth;
     if (Object.keys(citedinDict).length > Object.keys(maxCitedinDict).length)
         for (let key in citedinDict)
             maxCitedinDict[key] = citedinDict[key];
@@ -148,6 +141,8 @@ function updateDepth() {
 
     // Delete previous drawing
     removeCanvasContent();
+
+    let maxDepth = Object.keys(depthNodesAdded).length - 1;
 
     // If newDepth is larger than the current max, retrieve additional data and draw
     if (newDepth > maxDepth) {
@@ -259,7 +254,7 @@ function getCanvasHeight() {
 function removeCanvasContent() {
     d3.selectAll(".node").remove();
     d3.selectAll(".link").remove();
-    d3.selectAll(".infoDisplay").remove();
+    d3.select("#infoDisplay").remove();
 }
 
 /*
@@ -335,7 +330,7 @@ function draw() {
         .force("tick", tick)
         .force("x", d3.forceX(widthNetwork / 2).strength(0.1))
         .force("y", d3.forceY(heightNetwork / 2).strength(0.1))
-        .force("link", d3.forceLink(links).distance(40).strength(0.1))
+        .force("link", d3.forceLink(links).distance(50).strength(0.2))
         .force("charge", d3.forceManyBody().strength(-40))
         ;
 
@@ -369,7 +364,7 @@ function draw() {
         .append("circle")
         .attrs({
             class: "node",
-            r: 2
+            r: 3
         })
         .style("background-color", "black")
         .on("mouseover", handleMouseOver)
@@ -430,7 +425,7 @@ function draw() {
         d3.select(this)
             .transition()
             .duration(100)
-            .attr("r", 2)
+            .attr("r", 3)
             .styles({
                 fill: () => d.paperID == Object.keys(citedinDict)[0] ? "red" : "black",
                 stroke: "black",
@@ -657,6 +652,8 @@ function drawLegend(network) {
     const networkInfo = calculateNetworkInfo(network);
 
     d3.select("#svgCanvas")
+        .append("g")
+        .attr("id", "infoDisplay")
         .selectAll(".infoDisplay")
         .data([
             { t: "Min Degree", num: networkInfo.minDeg },
