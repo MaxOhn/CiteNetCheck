@@ -200,6 +200,7 @@ function startLoadingScreen() {
             href: "images/loading-animation.svg",
             x: getCanvasWidth() / 2 - "Retrieving data".length * 7 / 2,
             y: getCanvasHeight() / 2 - 70,
+            width: 80,
             height: 80
         });
 

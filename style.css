@@ -11,8 +11,8 @@ html body {
 }
 
 #svgCanvas {
-    width: 100%;
-    height: 100%;
+    width: 98%;
+    height: 98%;
     border: 3px solid black;
     margin: auto;
     border-radius: 5px;
@@ -54,12 +54,6 @@ html body {
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000
 }
 
-#depthInputDiv {
-    position: absolute;
-    top: 485px;
-    left: 15px;
-}
-
 #infoDisplay {
     position: absolute;
     top: 5px;
@@ -70,13 +64,13 @@ html body {
 
 #depthInputDiv {
   position: absolute;
-  top: 485px;
+  top: 472px;
   left: 15px;
 }
 
 #creditsButton {
     position: absolute;
-    left: 615px;
+    left: 602px;
     top: 15px;
     background: #333;
     color: #ccc;

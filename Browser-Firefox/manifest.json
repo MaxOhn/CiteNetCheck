@@ -1,0 +1,29 @@
+{
+  "manifest_version": 2,
+  "name": "CiteNetCheck",
+  "author": "Max Ohn",
+  "version": "1.0.0",
+  "description": "Analyze the local citation network of a published pubmed paper.",
+  "background": {
+    "scripts": [ "background.js" ]
+  },
+  "page_action": {
+    "default_title": "Analyze citation network",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/network_16.png",
+      "128": "images/network_128.png"
+    },
+    "show_matches": [
+      "http://www.ncbi.nlm.nih.gov/pubmed/*",
+      "https://www.ncbi.nlm.nih.gov/pubmed/*"
+    ]
+  },
+  "permissions": [
+    "tabs"
+  ],
+  "icons": {
+    "16": "images/network_16.png",
+    "128": "images/network_128.png"
+  }
+}

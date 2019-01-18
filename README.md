@@ -30,8 +30,7 @@ Once the icon is clicked, a small window will open, first retrieving data about 
 
 
 
-- Functionality for all browsers (currently only Google Chrome)
-- Draw more nicely for large amount of nodes
+- Use library to calculate network properties
 
 
 # Dependencies / Credits
