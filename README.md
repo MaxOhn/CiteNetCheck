@@ -30,7 +30,8 @@ Once the icon is clicked, a small window will open, first retrieving data about 
 
 
 
-- Use library to calculate network properties
+- Time the loading screen more properly while processing huge networks
+- Optimize calculation of network properties
 
 
 # Dependencies / Credits
