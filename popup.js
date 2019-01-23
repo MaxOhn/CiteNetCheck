@@ -9,10 +9,18 @@ let maxCitedinDict = {};
 // Keeps track which nodes were added at which depth
 let depthNodesAdded = {};
 
+// Keeps track about the network's properties for each depth
+let depthNetworkInfo = {};
+
 // How many degrees of distant neighbors should be retrieved
 // depth = 2 means up to all neighbors of 2nd degree of the initial paper ID
 let depth = 2;
 
+// Background worker to make all the API requests
+let requestWorker = new Worker("requestWorker.js");
+
+// Background worker to calculate properties like clustering or degrees of the network
+let networkPropertiesWorker = new Worker("networkPropertiesWorker.js");
 /*
  * Executed once the extension page is ready after clicking the icon
  */
@@ -27,7 +35,23 @@ $(document).ready(() => {
     d3.select("#depthUpdateButton")
         .on("click", updateDepth);
 
-    /*
+    // Handle requestWorker responses i.e. either keep recursion running or start drawing
+    requestWorker.onmessage = function (event) {
+        switch (event.data.type) {
+            case "end": return dataRetrieved(event.data.links, event.data.i);
+        }
+    };
+
+    // Handle networkPropertiesWorker responses i.e. draw info about the network (clustering & degrees)
+    networkPropertiesWorker.onmessage = function (event) {
+        switch (event.data.type) {
+            case "end": return (() => {
+                depthNetworkInfo[depth] = event.data.properties;
+                drawLegend(event.data.properties);
+            })();
+        }
+    };
+
     // Retrieve original paper ID from current webpage's url
     getCurrentPaperID(id => {
 
@@ -35,18 +59,18 @@ $(document).ready(() => {
         depthNodesAdded[0] = [id];
 
         // Recursive function called once for every iteration of depth
-        getCitedinForNextPapers(depth);
+        // The timeout prevents the first request to be done twice for some reason
+        setTimeout(() => getCitedinForNextPapers(depth), 1000);
     });
-    //*/
 
-    ///*
+    /*
     getTestData();
     draw();
     //*/
 });
 
 /*
- * Keeps requesting for the next depth layer until the desired depth is reached
+ * First waits for the delay between requests, then starts a job for the requestWorker
  *
  * @param i: Amount of recursions left
  */
@@ -58,37 +82,48 @@ function getCitedinForNextPapers(i) {
     // Wait inbetween requests
     setTimeout(() => {
 
-        // Retrieve the neighboring paper IDs
-        getCitedinIDs(depthNodesAdded[depth - i], nextCitedinDict => {
-
-            // Check which id's neighbors need to be retrieved next
-            // Includes IDs introduced in the last iteration minus the ones already considered
-            depthNodesAdded[depth - i + 1] = Object.values(nextCitedinDict)
-                .reduce((concatenation, curr) => concatenation.concat(curr), [])
-                .filter(id => !Object.keys(citedinDict).includes(id));
-
-            // Add result to the main dictionary
-            for (let key in nextCitedinDict) {
-                citedinDict[key] = nextCitedinDict[key];
-            }
-
-            // Desired depth not yet reached, stay in recursion
-            if (--i) getCitedinForNextPapers(i);
-
-            // Depth reached, finish recursion
-            else {
-
-                // Add "no links" to leaf nodes
-                extendDict();
-
-                // Information was gained, save it permanently
-                updateMaxValues();
-
-                // Start drawing the network
-                draw();
-            }
+        // Start worker
+        requestWorker.postMessage({
+            i: i,
+            idArray: depthNodesAdded[depth - i]
         });
     }, waitPerIteration);
+}
+
+/*
+ * Keeps requesting for the next depth layer until the desired depth is reached
+ *
+ * @nextCitedinDict: Dictionary of nodes that were added in the last depth iteration
+ * @param i: Amount of recursions left
+ */
+function dataRetrieved(nextCitedinDict, i) {
+
+    // Check which id's neighbors need to be retrieved next
+    // Includes IDs introduced in the last iteration minus the ones already considered
+    depthNodesAdded[depth - i + 1] = Object.values(nextCitedinDict)
+        .reduce((concatenation, curr) => concatenation.concat(curr), [])
+        .filter(id => !Object.keys(citedinDict).includes(id));
+
+    // Add result to the main dictionary
+    for (let key in nextCitedinDict) {
+        citedinDict[key] = nextCitedinDict[key];
+    }
+
+    // Desired depth not yet reached, stay in recursion
+    if (--i) getCitedinForNextPapers(i);
+
+    // Depth reached, finish recursion
+    else {
+
+        // Add "no links" to leaf nodes
+        extendDict();
+
+        // Information was gained, save it permanently
+        updateMaxValues();
+
+        // Start drawing the network
+        draw();
+    }
 }
 
 /*
@@ -135,10 +170,31 @@ function toggleCredits() {
 }
 
 /*
+ * Restarts the thread of networkPropertiesWorker.js in case it is running
+ */
+function npWorkerRestart() {
+
+    networkPropertiesWorker.terminate();
+    networkPropertiesWorker = new Worker("networkPropertiesWorker.js");
+
+    // Handle networkPropertiesWorker responses i.e. draw info about the network (clustering & degrees)
+    networkPropertiesWorker.onmessage = function (event) {
+        switch (event.data.type) {
+            case "end": return (() => {
+                depthNetworkInfo[depth] = event.data.properties;
+                drawLegend(event.data.properties);
+            })();
+        }
+    };
+}
+
+/*
  * Depending on how depth was changed, request more data or modify current dictionary entries
  * and redraw network
  */
 function updateDepth() {
+
+    npWorkerRestart();
 
     // Get input element value
     let newDepth = parseInt(d3.select("#depthInput")
@@ -162,14 +218,18 @@ function updateDepth() {
 
         // If newDepth is smaller than current depth, remove some nodes
         if (depth > newDepth) {
+
             for (let i = newDepth; i < maxDepth + 1; i++) {
+                if (!(i in depthNodesAdded))
+                    continue;
                 for (let savedID of depthNodesAdded[i]) {
                     delete citedinDict[savedID];
                 }
             }
+        }
 
         // If newDepth is greater than depth but smaller than the max, copy data from previous max
-        } else {
+        else {
             for (let i = depth; i < newDepth; i++) {
                 for (let savedID of depthNodesAdded[i]) {
                     citedinDict[savedID] = maxCitedinDict[savedID];
@@ -264,9 +324,7 @@ function removeCanvasContent() {
 }
 
 /*
- * Draw the network
- *
- * @param citeDict: Dictionary where keys are IDs of papers and values are arrays of IDs of papers which cite their key paper
+ * Calculate node and link positions, then draw them, then calculate network propeties
  */
 function draw() {
 
@@ -454,28 +512,28 @@ function draw() {
     }
 
     // Background worker to simulate force after the initial random positions of nodes
-    let worker = new Worker("drawWorker.js");
+    let initialWorker = new Worker("initialWorker.js");
 
     // Start worker
-    worker.postMessage({
+    initialWorker.postMessage({
         quality: nodes.length < heavyCalcNodeAmount ? "high" : "low",
         nodes: nodes,
         links: links
     });
 
     // Handle worker responses
-    worker.onmessage = function (event) {
+    initialWorker.onmessage = function (event) {
         switch (event.data.type) {
-            case "tick": return ticked(event.data);
-            case "end": return ended(event.data);
+            case "end": return initialWorkerEnded(event.data);
         }
     };
 
-    function ended(data) {
-
+    // Positions of nodes and links calculated, start drawing
+    function initialWorkerEnded(data) {
         nodes = data.nodes;
         links = data.links;
 
+        // Force if amount of nodes is low enough to make calculation feasable
         force = d3.forceSimulation(nodes)
             .force("tick", tick)
             .force("x", d3.forceX(700 / 2).strength(0.1))
@@ -483,6 +541,7 @@ function draw() {
             .force("charge", d3.forceManyBody().strength(-40))
             .force("link", d3.forceLink(links).distance(50).strength(0.2));
 
+        // If too many nodes, forget about force
         if (nodes.length >= heavyCalcNodeAmount)
             force.stop();
 
@@ -542,8 +601,16 @@ function draw() {
                 "stroke-width": 1
             });
 
-        // Draw info about the network (clustering & degrees)
-        //drawLegend(citedinDict);
+        // Properties have been calculated before
+        if (depth in depthNetworkInfo)
+            drawLegend(depthNetworkInfo[depth])
+        else {
+
+            // Start worker
+            networkPropertiesWorker.postMessage({
+                network: citedinDict
+            });
+        }
     }
 }
 
@@ -560,208 +627,23 @@ function getCurrentPaperID(callback) {
 }
 
 /*
- * Given an array of paper IDs, pass a dictionary containing key-value-pairs for each element
- * of the array mapped to an array of paper IDs that cite the element.
- *
- * @param idArray: Paper ID array that contaings elements which are being cited
- * @param callback: Function to be called upon data retrieval
- */
-function getCitedinIDs(idArray, callback) {
-
-    // Dont request anything if no ids specified
-    if (idArray.length == 0) {
-        callback({});
-        return;
-    }
-
-    // Proxy to add Access-Control-Allow-Origin parameters to server response (now redundant)
-    //const corsProxy = "https://desolate-basin-70105.herokuapp.com/";
-
-    const mainURL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi";
-    let mainQueries = "dbfrom=pubmed&db=pubmed&linkname=pubmed_pubmed_citedin&retmode=json";
-    console.log("[" + idArray.length + " ids] Requesting from " + mainURL + "?" + mainQueries);
-
-    // Amount of ids is small enough to request via HTTP GET which returns json data
-    if (idArray.length <= 25) {
-
-        // Add all ids to the query
-        for (let id of idArray) {
-            mainQueries += "&id=" + id;
-        }
-
-        // Request data, process it, call callback with processed data
-        $.getJSON(mainURL + "?" + mainQueries, data => {
-            let idLinks = {};
-            if (Object.keys(data).includes("linksets")) {
-                for (let value of Object.values(data.linksets)) {
-                    idLinks[value.ids] = Object.keys(value).includes("linksetdbs")
-                        ? value.linksetdbs[0].links.map(l => l.toString())
-                        : [];
-                }
-            }
-            callback(idLinks);
-        });
-    }
-
-    // Too many ids for GET, request by HTTP POST instead which returns data as dictionary
-    else {
-
-        // Data is requested in batches in case the amount of ids is very large
-        // allLinks will contain the entire information requested from the API
-        let allLinks = {};
-        const waitInbetweenRequests = 750;
-        const idsPerRequest = 1500;
-
-        // Recursively called until all ids are done
-        (function requestNextBatch(currIdIndex) {
-            let currQueries = mainQueries;
-            let n = Math.min(idArray.length, currIdIndex + idsPerRequest)
-            console.log("\t-> Requesting batch from " + currIdIndex + " to " + n);
-
-            // Request up to 'idsPerRequest' many ids, then start the next batch
-            for (; currIdIndex < n; currIdIndex++) {
-                currQueries += "&id=" + idArray[currIdIndex];
-            }
-
-            // Careful to not request too much at once
-            setTimeout(() => {
-
-                // POST request with long query as data instead of url
-                $.post({
-                    url: mainURL,
-                    proccessData: false,
-                    data: currQueries,
-                    success: data => {
-
-                        // Process data
-                        let currLinks = {};
-                        for (let linkset of data.linksets) {
-                            currLinks[linkset.ids[0]] = linkset.hasOwnProperty("linksetdbs")
-                                ? linkset.linksetdbs[0].links.map(l => l.toString())
-                                : [];
-                        }
-
-                        // Add new data to allLinks
-                        const allKeys = Object.keys(allLinks);
-                        for (let key in currLinks) {
-                            if (key in allKeys)
-                                allLinks[key] += currLinks[key];
-                            else
-                                allLinks[key] = currLinks[key];
-                        }
-
-                        // If all ids done, use callback, otherwise continue recursively
-                        if (currIdIndex < idArray.length)
-                            requestNextBatch(currIdIndex);
-                        else {
-                            callback(allLinks);
-                        }
-                    }
-                })
-            }, waitInbetweenRequests);
-        })(0);
-    }
-}
-
-/*
- * Return a dicitonary containing values with respect to the input variable "network"
- *  globalClust: Global cluster coefficient
- *  minClust:    Minimal local cluster coefficient
- *  maxClust:    Maximal local cluster coefficient
- *  minDeg:      Minimal degree of nodes
- *  maxDeg:      Maximal degree of nodes
- *
- * @param network: Dictionary of the network (key node maps to array of nodes)
- */
-function calculateNetworkInfo(network) {
-
-    // Concatenation of all reachable nodes
-    let allValues = Object.values(network).reduce((union, curr) => union.concat(curr), []);
-
-    // Array of all nodes
-    let allNodes = Object.keys(network).concat(allValues).filter((val, ind, self) => self.indexOf(val) == ind);
-
-    // Dictionary that maps nodes to indices of the adjacency matrix
-    let nodeMap = {};
-
-    // Preparing adjacency matrix
-    let adjMatrix = [];
-
-    // Add a row for each node
-    for (let i = 0; i < allNodes.length; i++) {
-
-        // Check for all nodes if they are reached from the current node or not and push 1 or 0, respectively
-        let newRow = allNodes.map(elem => network[allNodes[i]].indexOf(elem) != -1 ? 1 : 0);
-
-        // Add the row and save the index
-        adjMatrix.push(newRow);
-        nodeMap[i] = allNodes[i];
-    }
-
-    // Make the matrix symmetrix i.e. if (x,y) is a one then (y,x) must be a one too
-    adjMatrix.forEach((row, x) => {
-        row.forEach((cell, y) => {
-            if (cell == 1) {
-                adjMatrix[y][x] = 1;
-            }
-        });
-    });
-
-    // Dictionary containing local clusterings of each node
-    let localClustering = {};
-
-    // For each node i
-    for (let i = 0; i < allNodes.length; i++) {
-
-        // Get all neighbors
-        let neighbors = adjMatrix[i].map((elem, ind) => elem == 1 ? ind : -1).filter(elem => elem != -1);
-
-        let divisor = neighbors.length * (neighbors.length - 1);
-        let sum = 0;
-
-        // For each neighbor n
-        for (let n of neighbors) {
-
-            // Get all neighbors
-            let nneighbors = adjMatrix[n].map((elem, ind) => elem == 1 ? ind : -1).filter(elem => elem != -1);
-
-            // Add the amount of common neighbors node i and n
-            sum += neighbors.filter(elem => nneighbors.indexOf(elem) != -1).length;
-        }
-
-        // Divide by coefficient divisor and save
-        localClustering[nodeMap[i]] = divisor == 0 ? 0 : sum / divisor;
-    }
-
-    // Take average of local cluster coefficients as global cluster coefficient
-    let addedClustering = (Object.values(localClustering).reduce((sum, elem) => sum + elem));
-
-    // Calculate the rest of the info and return it
-    return {
-        globalClust: round(addedClustering / Object.keys(localClustering).length, 2),
-        minClust: Object.values(localClustering).reduce((min, elem) => elem < min ? elem : min),
-        maxClust: Object.values(localClustering).reduce((max, elem) => elem > max ? elem : max),
-        minDeg: Object.values(network).reduce((min, elem) => elem.length < min ? elem.length : min, 0),
-        maxDeg: Object.values(network).reduce((max, elem) => elem.length > max ? elem.length : max, 0)
-    };
-}
-
-/*
  * Adds info about the network in the upper left corner of the SVG
- * This info includes everything returned from the calculateNetworkInfo function
+ * This info includes everything returned from the networkProperties worker
  *
- * @param network: Dictionary of the network (key node maps to array of nodes)
+ * @param networkInfo:  Dictionary containing info like clustering coefficients
+ *                      or degrees of the network (data returned from the worker)
  */
-function drawLegend(network) {
+function drawLegend(networkInfo) {
 
-    // Dictionary containing info like clustering coefficients or degrees of the network
-    const networkInfo = calculateNetworkInfo(network);
+    // Save properties
+    depthNetworkInfo[depth] = networkInfo;
 
     d3.select("#svgCanvas")
         .append("g")
         .attr("id", "infoDisplay")
         .selectAll(".infoDisplay")
         .data([
+            { t: "# nodes", num: networkInfo.nNodes },
             { t: "Min Degree", num: networkInfo.minDeg },
             { t: "Max Degree", num: networkInfo.maxDeg },
             { t: "GCC", num: networkInfo.globalClust },
@@ -776,17 +658,6 @@ function drawLegend(network) {
             y: (_, i) => 15 * (i + 1)
         })
         .text(d => d.t + ": " + d.num);
-}
-
-/*
- * Auxiliary function to round number
- *
- * @param num: Number to be rounded
- * @param precision: Decimal places to be taken into account
- */
-function round(num, precision) {
-    precision = Math.pow(10, precision);
-    return Math.round(num * precision) / precision;
 }
 
 function getTestData() {
@@ -916,14 +787,4 @@ function getTestData() {
     }
     citedinDict = idLinks;
     extendDict();
-    depthNodesAdded[0] = ["24119596"];
-    depthNodesAdded[1] = ["30370173",
-        "29559887",
-        "29264281",
-        "28964532",
-        "28025606",
-        "27746900",
-        "26770282"
-    ];
-    updateMaxValues();
 }

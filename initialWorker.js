@@ -31,5 +31,6 @@ if ('function' === typeof importScripts) {
 
         // Return the result of the movement
         postMessage({ type: "end", nodes: nodes, links: links });
+        close();
     };
 }
