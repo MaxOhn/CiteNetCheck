@@ -617,16 +617,14 @@ function NetworkDrawing() {
         links = data.links;
 
         // Force if amount of nodes is low enough to make calculation feasable
-        force = d3.forceSimulation(nodes)
-            .force("tick", tick)
-            .force("x", d3.forceX(700 / 2).strength(0.1))
-            .force("y", d3.forceY(500 / 2).strength(0.1))
-            .force("charge", d3.forceManyBody().strength(-40))
-            .force("link", d3.forceLink(links).distance(50).strength(0.2));
-
-        // If too many nodes, forget about force
-        if (nodes.length >= heavyCalcNodeAmount)
-            force.stop();
+        if (nodes.length < heavyCalcNodeAmount) {
+            force = d3.forceSimulation(nodes)
+                .force("tick", tick)
+                .force("x", d3.forceX(700 / 2).strength(0.1))
+                .force("y", d3.forceY(500 / 2).strength(0.1))
+                .force("charge", d3.forceManyBody().strength(-40))
+                .force("link", d3.forceLink(links).distance(50).strength(0.2));
+        }
 
         stopLoadingScreen();
 
@@ -710,6 +708,8 @@ function NetworkDrawing() {
         // Properties have been calculated before
         if (depth in depthNetworkInfo)
             drawLegend(depthNetworkInfo[depth])
+
+        // No properties for current depth calculated yet
         else {
 
             // Start worker
@@ -777,7 +777,7 @@ function NetworkDrawing() {
     // Triggered upon mouse release on a node, determines force end and removes paper ID
     function dragended(d) {
         dragging = false;
-        if (!d3.event.active)
+        if (!d3.event.active && nodes.length < heavyCalcNodeAmount)
             force.alphaTarget(0);
         d.fx = null;
         d.fy = null;
@@ -798,7 +798,7 @@ function NetworkDrawing() {
             .duration(100)
             .attr("r", 10)
             .styles({
-                fill: () => d.paperID == Object.keys(citedinDict)[0] ? "red" : "white",
+                fill: () => d.paperID == depthNodesAdded[0][0] ? "red" : "white",
                 stroke: "black",
                 "stroke-width": 3
             })
@@ -828,7 +828,7 @@ function NetworkDrawing() {
             .duration(100)
             .attr("r", 3)
             .styles({
-                fill: () => d.paperID == Object.keys(citedinDict)[0] ? "red" : "black",
+                fill: () => d.paperID == depthNodesAdded[0][0] ? "red" : "black",
                 stroke: "black",
                 "stroke-width": 1
             });

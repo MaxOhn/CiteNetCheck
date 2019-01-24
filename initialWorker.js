@@ -17,7 +17,7 @@ if ('function' === typeof importScripts) {
             .force("charge", d3.forceManyBody().strength(-40));
 
         if (quality == "low") {
-            force.force("link", d3.forceLink(links).distance(100).strength(0.1).iterations(10));
+            force.force("link", d3.forceLink(links).distance(150).strength(0.1).iterations(10));
         } else {
             force.force("link", d3.forceLink(links).distance(50).strength(0.2));
         }
