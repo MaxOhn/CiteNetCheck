@@ -6,6 +6,7 @@
  *  maxClust:    Maximal local cluster coefficient
  *  minDeg:      Minimal degree of nodes
  *  maxDeg:      Maximal degree of nodes
+ *  nNodes:      Amount of nodes
  *
  * @param network: Dictionary of the network (key node maps to array of nodes)
  */

@@ -25,7 +25,6 @@ if ('function' === typeof importScripts) {
         // Calculate ticks of node and link movement
         const n = Math.ceil(Math.log(force.alphaMin()) / (10 * Math.log(1 - force.alphaDecay())));
         for (let i = 0; i < n; ++i) {
-            //postMessage({ type: "tick", progress: i / n });
             force.tick();
         }
 
