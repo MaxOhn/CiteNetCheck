@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "description": "Analyze the local citation network of a published pubmed paper.",
   "background": {
-    "scripts": [ "background.js", "drawWorker.js" ],
+    "scripts": [ "background.js" ],
     "persistence": false
   },
   "page_action": {

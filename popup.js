@@ -26,7 +26,7 @@ let networkPropertiesWorker = new Worker("networkPropertiesWorker.js");
 let drawing;
 
 /*
- * Executed once the extension page is ready after clicking the icon
+ * Executed when the extension page is ready after clicking the icon
  */
 $(document).ready(() => {
 
@@ -803,7 +803,7 @@ function drawLegend(networkInfo) {
             { t: "# nodes", num: networkInfo.nNodes },
             { t: "Min Degree", num: networkInfo.minDeg },
             { t: "Max Degree", num: networkInfo.maxDeg },
-            { t: "GCC", num: networkInfo.globalClust },
+            { t: "Avg CC", num: networkInfo.avgClust },
             { t: "Min LCC", num: networkInfo.minClust },
             { t: "Max LCC", num: networkInfo.maxClust }
         ])

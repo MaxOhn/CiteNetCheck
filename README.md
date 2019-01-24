@@ -30,7 +30,7 @@ Once the icon is clicked, a small window will open, first retrieving data about 
 
 
 
-- Optimize / Revise calculation of network properties
+- Loading progress display
 
 
 # Dependencies / Credits
@@ -39,5 +39,6 @@ Once the icon is clicked, a small window will open, first retrieving data about 
 
 - [d3](https://d3js.org/)
 - [jQuery](https://jquery.com/)
+- [JSNetworkX](http://jsnetworkx.org/index.html)
 - [NCBI's E-Utilities API](https://www.ncbi.nlm.nih.gov/books/NBK25497/) ([Disclaimer and Copyright notice](https://www.ncbi.nlm.nih.gov/home/about/policies/))
 - Extension icons are made by [Smashicons](https://www.flaticon.com/authors/smashicons), licensed as [Creative Commons BY 3.0](https://creativecommons.org/licenses/by/3.0/legalcode)
