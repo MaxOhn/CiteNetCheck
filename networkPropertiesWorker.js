@@ -42,8 +42,8 @@ if ('function' === typeof importScripts) {
         let prop =
         {
             avgClust: round(jsnx.averageClustering(graph), 2),
-            minClust: round(Object.values(localClustering).reduce((min, elem) => elem < min ? elem : min), 2),
-            maxClust: round(Object.values(localClustering).reduce((max, elem) => elem > max ? elem : max), 2),
+            minClust: round(Object.values(localClustering).reduce((min, elem) => elem < min ? elem : min, 0), 2),
+            maxClust: round(Object.values(localClustering).reduce((max, elem) => elem > max ? elem : max, 0), 2),
             minDeg: Object.values(network).reduce((min, elem) => elem.length < min ? elem.length : min, 0),
             maxDeg: Object.values(network).reduce((max, elem) => elem.length > max ? elem.length : max, 0),
             nNodes: Object.keys(network).length

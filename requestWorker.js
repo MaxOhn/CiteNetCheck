@@ -14,10 +14,11 @@ if ('function' === typeof importScripts) {
 
         const i = event.data.i;
         const idArray = event.data.idArray;
+        const amountIDs = idArray.length;
         let xhr;
 
         // Dont request anything if no ids specified
-        if (idArray.length == 0) {
+        if (amountIDs == 0) {
             postMessage({ type: "end", links: {} });
             return;
         }
@@ -27,10 +28,10 @@ if ('function' === typeof importScripts) {
 
         const mainURL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi";
         let mainQueries = "dbfrom=pubmed&db=pubmed&linkname=pubmed_pubmed_citedin&retmode=json";
-        console.log("[" + idArray.length + " ids] Requesting from " + mainURL + "?" + mainQueries);
+        console.log("[" + amountIDs + " ids] Requesting from " + mainURL + "?" + mainQueries);
 
         // Amount of ids is small enough to request via HTTP GET which returns json data
-        if (idArray.length <= 25) {
+        if (amountIDs <= 25) {
 
             xhr = new XMLHttpRequest();
 
@@ -69,7 +70,7 @@ if ('function' === typeof importScripts) {
             // Recursively called until all ids are done
             (function requestNextBatch(currIdIndex) {
                 let currQueries = mainQueries;
-                let n = Math.min(idArray.length, currIdIndex + idsPerRequest)
+                let n = Math.min(amountIDs, currIdIndex + idsPerRequest)
                 console.log("\t-> Requesting batch from " + currIdIndex + " to " + n);
 
                 // Request up to 'idsPerRequest' many ids, then start the next batch
@@ -104,8 +105,10 @@ if ('function' === typeof importScripts) {
                             }
 
                             // If all ids done, use callback, otherwise continue recursively
-                            if (currIdIndex < idArray.length)
+                            if (currIdIndex < amountIDs) {
+                                postMessage({ type: "batchEnd", progress: (currIdIndex / amountIDs)});
                                 requestNextBatch(currIdIndex);
+                            }
                             else {
                                 postMessage({ type: "end", i: i, links: allLinks });
                             }

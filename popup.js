@@ -25,6 +25,9 @@ let networkPropertiesWorker = new Worker("networkPropertiesWorker.js");
 // Instance responsible for the network itself, both logically and visually
 let drawing;
 
+// Instance responsible for displaying current loading progress
+let loading;
+
 /*
  * Executed when the extension page is ready after clicking the icon
  */
@@ -32,6 +35,8 @@ $(document).ready(() => {
 
     // Start loading screen
     startLoadingScreen();
+    loading = new LoadingProgress();
+    loading.start(depth);
 
     // Add functions to buttons
     d3.select("#creditsButton")
@@ -40,19 +45,25 @@ $(document).ready(() => {
         .on("click", updateDepth);
 
     // Handle requestWorker responses i.e. either keep recursion running or start drawing
-    requestWorker.onmessage = function (event) {
+    requestWorker.onmessage = event => {
         switch (event.data.type) {
-            case "end": return dataRetrieved(event.data.links, event.data.i);
+            case "batchEnd":
+                loading.setBatchProgress(event.data.progress);
+                break;
+            case "end":
+                loading.requestDone();
+                dataRetrieved(event.data.links, event.data.i);
+                break;
         }
     };
 
     // Handle networkPropertiesWorker responses i.e. draw info about the network (clustering & degrees)
-    networkPropertiesWorker.onmessage = function (event) {
+    networkPropertiesWorker.onmessage = event => {
         switch (event.data.type) {
-            case "end": return (() => {
+            case "end":
                 depthNetworkInfo[depth] = event.data.properties;
                 drawLegend(event.data.properties);
-            })();
+                break;
         }
     };
 
@@ -185,12 +196,12 @@ function npWorkerRestart() {
     networkPropertiesWorker = new Worker("networkPropertiesWorker.js");
 
     // Handle networkPropertiesWorker responses i.e. draw info about the network (clustering & degrees)
-    networkPropertiesWorker.onmessage = function (event) {
+    networkPropertiesWorker.onmessage = event => {
         switch (event.data.type) {
-            case "end": return (() => {
+            case "end":
                 depthNetworkInfo[depth] = event.data.properties;
                 drawLegend(event.data.properties);
-            })();
+                break;
         }
     };
 }
@@ -219,6 +230,7 @@ function updateDepth() {
             citedinDict[key] = maxCitedinDict[key];
         }
         depth = newDepth;
+        loading.start(depth - maxDepth);
         let asyncPromise = new Promise(resolve => resolve(getCitedinForNextPapers(newDepth - maxDepth)));
         asyncPromise.then(_ => updateMaxValues());
     } else {
@@ -280,19 +292,70 @@ function startLoadingScreen() {
     let loadingText = svg.append("text")
         .attrs({
             id: "loading-text",
-            x: getCanvasWidth() / 2 - "Preparing data".length * 15 / 2,
+            x: getCanvasWidth() / 2 - "Preparing data (..%)".length * 15 / 2,
             y: getCanvasHeight() / 2 + 70
-        });
+        })
+        .text("Preparing data (0%)");
+}
 
-    // Update text every 500ms
-    loadingText.transition()
-        .on("start", function repeat() {
-            d3.active(this).text("Preparing data")
-                .transition().delay(500).text("Preparing data.")
-                .transition().delay(500).text("Preparing data..")
-                .transition().delay(500).text("Preparing data...")
-                .transition().delay(500).on("start", repeat);
-        });
+/*
+ * Responsible for displaying the current loading progress
+ *
+ * Public variable: totalRequests
+ * Callable methods:
+ *   - setBatchProgress(p)
+ *   - setMovementProgress(p)
+ *   - requestDone()
+ *   - reset()
+ */
+function LoadingProgress() {
+
+    // Auxiliary variable for rounding purposes
+    const precision = Math.pow(10, 2);
+
+    // Loading is split in 2 parts, both worth 50%: Requesting and calculating movement
+    // Requesting further depends on the progress of all batches required
+    let requestProgress;
+    let currentRequests;
+    let totalRequests;
+    let batchProgress;
+    let movementProgress;
+    let progress;
+
+    // Update by changing batch progress
+    this.setBatchProgress = p => {
+        batchProgress = p;
+        update(this.totalRequests);
+    }
+
+    // Update by changing movement progress
+    this.setMovementProgress = p => {
+        movementProgress = p;
+        update();
+    }
+
+    // Update by changing request progress
+    this.requestDone = () => {
+        batchProgress = 0;
+        requestProgress = ++currentRequests / totalRequests;
+        update();
+    }
+
+    // Initialize progress variables
+    this.start = tRequests => {
+        requestProgress = 0;
+        currentRequests = 0;
+        totalRequests = tRequests;
+        batchProgress = 0;
+        movementProgress = 0;
+    }
+
+    // Update final progress and rewrite loading text
+    function update() {
+        progress = 50 * Math.round((requestProgress + (batchProgress / totalRequests) + movementProgress) * precision) / precision;
+        d3.select("#loading-text")
+            .text("Preparing data (" + progress + "%)");
+    }
 }
 
 /*
@@ -481,19 +544,24 @@ function NetworkDrawing() {
         // Background worker to simulate force after the initial random positions of nodes
         let initialWorker = new Worker("initialWorker.js");
 
+        // Handle worker responses
+        initialWorker.onmessage = event => {
+            switch (event.data.type) {
+                case "tick":
+                    loading.setMovementProgress(event.data.progress);
+                    break;
+                case "end":
+                    initialWorkerEnded(event.data, false);
+                    break;
+            }
+        };
+
         // Start worker
         initialWorker.postMessage({
             quality: nodes.length < heavyCalcNodeAmount ? "high" : "low",
             nodes: nodes,
             links: links
         });
-
-        // Handle worker responses
-        initialWorker.onmessage = function (event) {
-            switch (event.data.type) {
-                case "end": return initialWorkerEnded(event.data, false);
-            }
-        };
     }
 
     this.drawPreviousDepth = () => {
@@ -522,23 +590,29 @@ function NetworkDrawing() {
         // Background worker to simulate force after the initial random positions of nodes
         let initialWorker = new Worker("initialWorker.js");
 
+        // Handle worker responses
+        initialWorker.onmessage = event => {
+            switch (event.data.type) {
+                case "tick":
+                    loading.setMovementProgress(event.data.progress);
+                    break;
+                case "end":
+                    initialWorkerEnded(event.data, true);
+                    break;
+            }
+        };
+
         // Start worker
         initialWorker.postMessage({
             quality: nodes.length < heavyCalcNodeAmount ? "high" : "low",
             nodes: nodes,
             links: links
         });
-
-        // Handle worker responses
-        initialWorker.onmessage = function (event) {
-            switch (event.data.type) {
-                case "end": return initialWorkerEnded(event.data, true);
-            }
-        };
     }
 
     // Positions of nodes and links calculated, start drawing
     function initialWorkerEnded(data, drawLinks) {
+
         nodes = data.nodes;
         links = data.links;
 

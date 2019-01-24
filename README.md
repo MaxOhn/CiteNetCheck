@@ -30,15 +30,15 @@ Once the icon is clicked, a small window will open, first retrieving data about 
 
 
 
-- Loading progress display
+- None as of now
 
 
 # Dependencies / Credits
 
 
 
-- [d3](https://d3js.org/)
-- [jQuery](https://jquery.com/)
-- [JSNetworkX](http://jsnetworkx.org/index.html)
-- [NCBI's E-Utilities API](https://www.ncbi.nlm.nih.gov/books/NBK25497/) ([Disclaimer and Copyright notice](https://www.ncbi.nlm.nih.gov/home/about/policies/))
+- DOM manipulation: [jQuery](https://jquery.com/)
+- Network visualization: [d3](https://d3js.org/)
+- Property calculation: [JSNetworkX](http://jsnetworkx.org/index.html)
+- Data retrieval: [NCBI's E-Utilities API](https://www.ncbi.nlm.nih.gov/books/NBK25497/) ([Disclaimer and Copyright notice](https://www.ncbi.nlm.nih.gov/home/about/policies/))
 - Extension icons are made by [Smashicons](https://www.flaticon.com/authors/smashicons), licensed as [Creative Commons BY 3.0](https://creativecommons.org/licenses/by/3.0/legalcode)

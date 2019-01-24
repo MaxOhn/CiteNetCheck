@@ -5,6 +5,7 @@ if ('function' === typeof importScripts) {
 
     // Request to start working
     onmessage = function (event) {
+
         let quality = event.data.quality;
         let nodes = event.data.nodes;
         let links = event.data.links;
@@ -16,15 +17,16 @@ if ('function' === typeof importScripts) {
             .force("charge", d3.forceManyBody().strength(-40));
 
         if (quality == "low") {
-            force.force("link", d3.forceLink(links).distance(100).strength(0.1).iterations(10))
-                .stop();
+            force.force("link", d3.forceLink(links).distance(100).strength(0.1).iterations(10));
         } else {
             force.force("link", d3.forceLink(links).distance(50).strength(0.2));
         }
+        force.stop();
 
         // Calculate ticks of node and link movement
         const n = Math.ceil(Math.log(force.alphaMin()) / (10 * Math.log(1 - force.alphaDecay())));
         for (let i = 0; i < n; ++i) {
+            postMessage({ type: "tick", progress: (i/n) });
             force.tick();
         }
 
