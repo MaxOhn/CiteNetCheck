@@ -8,7 +8,7 @@ This extension retrieves data from [pubmed](https://www.ncbi.nlm.nih.gov/pubmed)
 
 Preview: 
 
-![Preview](https://puu.sh/CBSdI/9221875f48.gif)
+![Preview](https://puu.sh/CBSqX/56a6e366d2.gif)
 
 # Usage
 
@@ -16,11 +16,11 @@ Preview:
 
 Once imported as browser extension, the extension's icon will lit up on pubmed's websites for papers, e.g.
 
- [Critical evaluation of the Newcastle-Ottawa scale for the assessment of the quality of nonrandomized studies in meta-analyses.](https://www.ncbi.nlm.nih.gov/pubmed/20652370)
-
-or
-
 [The use of postoperative topical corticosteroids in chronic rhinosinusitis with nasal polyps: a systematic review and meta-analysis.](https://www.ncbi.nlm.nih.gov/pubmed/24119596)
+
+[The Rotterdam Study: 2012 objectives and design update.](https://www.ncbi.nlm.nih.gov/pubmed/21877163)
+
+[Critical evaluation of the Newcastle-Ottawa scale for the assessment of the quality of nonrandomized studies in meta-analyses.](https://www.ncbi.nlm.nih.gov/pubmed/20652370)
 
 Once the icon is clicked, a small window will open, first retrieving data about the citation network, and then displaying it.
 
