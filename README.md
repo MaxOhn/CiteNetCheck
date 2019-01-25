@@ -6,9 +6,7 @@ CiteNetCheck is a browser extension written within the scope of my "Studienarbei
 
 This extension retrieves data from [pubmed](https://www.ncbi.nlm.nih.gov/pubmed) of a paper's local citation network and displays the network and some of its properties.
 
-Preview: 
-
-![Preview](https://puu.sh/CBSqX/56a6e366d2.gif)
+[Preview gif](https://puu.sh/CBSqX/56a6e366d2.gif)
 
 # Usage
 
