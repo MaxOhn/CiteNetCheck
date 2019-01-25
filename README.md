@@ -8,7 +8,7 @@ This extension retrieves data from [pubmed](https://www.ncbi.nlm.nih.gov/pubmed)
 
 Preview: 
 
-![Preview](https://puu.sh/CBQD9/20deecddda.gif)
+![Preview](https://puu.sh/CBSdI/9221875f48.gif)
 
 # Usage
 
