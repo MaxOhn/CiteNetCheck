@@ -51,7 +51,7 @@ if ('function' === typeof importScripts) {
                                 : [];
                         }
                     }
-                    postMessage({ type: "end", i: i, links: idLinks });
+                    postMessage({ type: "end", i: i, batchDict: idLinks, links: idLinks });
                 }
             }
             xhr.open("GET", mainURL + "?" + mainQueries, true);
@@ -65,7 +65,7 @@ if ('function' === typeof importScripts) {
             // allLinks will contain the entire information requested from the API
             let allLinks = {};
             const waitInbetweenRequests = 750;
-            const idsPerRequest = 1000;
+            const idsPerRequest = 500;
 
             // Recursively called until all ids are done
             (function requestNextBatch(currIdIndex) {
@@ -106,11 +106,11 @@ if ('function' === typeof importScripts) {
 
                             // If all ids done, use callback, otherwise continue recursively
                             if (currIdIndex < amountIDs) {
-                                postMessage({ type: "batchEnd", progress: (currIdIndex / amountIDs)});
+                                postMessage({ type: "batchEnd", progress: (currIdIndex / amountIDs), batchDict: currLinks });
                                 requestNextBatch(currIdIndex);
                             }
                             else {
-                                postMessage({ type: "end", i: i, links: allLinks });
+                                postMessage({ type: "end", i: i, batchDict: currLinks, links: allLinks });
                             }
                         }
                     }

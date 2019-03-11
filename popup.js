@@ -44,14 +44,27 @@ $(document).ready(() => {
     d3.select("#depthUpdateButton")
         .on("click", updateDepth);
 
-    // Handle requestWorker responses i.e. either keep recursion running or start drawing
+    // Auxiliary function to draw elements above other elements
+    d3.selection.prototype.moveToFront = function () {
+        return this.each(function () {
+            this.parentNode.appendChild(this);
+        });
+    };
+
+    // Instance responsible for the network itself, both logically and visually
+    drawing = new NetworkDrawing();
+
+    // Handle requestWorker responses i.e. draw elements but hide them and
+    // either keep recursion running or finish the drawing
     requestWorker.onmessage = event => {
         switch (event.data.type) {
             case "batchEnd":
                 loading.setBatchProgress(event.data.progress);
+                drawing.addElements(event.data.batchDict);
                 break;
             case "end":
                 loading.requestDone();
+                drawing.addElements(event.data.batchDict);
                 dataRetrieved(event.data.links, event.data.i);
                 break;
         }
@@ -66,9 +79,6 @@ $(document).ready(() => {
                 break;
         }
     };
-
-    // Instance responsible for the network itself, both logically and visually
-    drawing = new NetworkDrawing();
 
     //*
     // Retrieve original paper ID from current webpage's url
@@ -123,9 +133,6 @@ function dataRetrieved(nextCitedinDict, i) {
     for (let key in nextCitedinDict) {
         citedinDict[key] = nextCitedinDict[key];
     }
-
-    // Logically add nodes and links to the drawing + draw links but hide them
-    drawing.addElements(nextCitedinDict);
 
     // Desired depth not yet reached, stay in recursion
     if (--i) getCitedinForNextPapers(i);
@@ -509,11 +516,6 @@ function NetworkDrawing() {
                 visibility: "hidden"
             });
 
-        // As svg elements' z-axis is decided by their order of creation,
-        // all nodes added now would lie below all links created in later
-        // iterations. Hence, I decided to sacrifice efficiency for esthetics
-        // by not drawing nodes now but instead draw all nodes at the very end
-        /*
         svg.selectAll(".node").data(nodes)
             .enter()
             .append("circle")
@@ -527,7 +529,6 @@ function NetworkDrawing() {
                 "background-color": "black",
                 visibility: "hidden"
             });
-        //*/
     }
 
     /*
@@ -690,8 +691,18 @@ function NetworkDrawing() {
                 cy: d => d.y
             })
             .styles({
-                "background-color": "black",
-                visibility: "visibile"
+                "background-color": "black"
+            });
+
+        // Make them visible and add mouse and drag behaviour
+        svg.selectAll(".node")
+            .data(nodes)
+            .attrs({
+                cx: d => d.x,
+                cy: d => d.y
+            })
+            .styles({
+                visibility: "visible"
             })
             .on("mouseover", handleMouseOver)
             .on("mouseout", handleMouseOut)
@@ -793,6 +804,7 @@ function NetworkDrawing() {
     function handleMouseOver(d, i) {
         if (dragging) return;
         hover = true;
+        d3.select(this).moveToFront();
         d3.select(this)
             .transition()
             .duration(100)
